@@ -1,0 +1,365 @@
+diff -ruNx image.s origsrc/include/minix/callnr.h src/include/minix/callnr.h
+--- origsrc/include/minix/callnr.h	2008-03-19 12:21:34.000000000 +0000
++++ src/include/minix/callnr.h	2010-04-22 16:51:57.000000000 +0000
+@@ -57,7 +57,7 @@
+ #define UNPAUSE		  65	/* to MM or FS: check for EINTR */
+ #define REVIVE	 	  67	/* to FS: revive a sleeping process */
+ #define TASK_REPLY	  68	/* to FS: reply code from tty task */
+-
++#define SEMA		  69
+ /* Posix signal handling. */
+ #define SIGACTION	  71
+ #define SIGSUSPEND	  72
+diff -ruNx image.s origsrc/include/sema.h src/include/sema.h
+--- origsrc/include/sema.h	1970-01-01 00:00:00.000000000 +0000
++++ src/include/sema.h	2010-04-25 20:02:10.000000000 +0000
+@@ -0,0 +1,14 @@
++#ifndef _SEMA_H
++#define _SEMA_H
++
++int do_sema(void);
++int sem_init(int val);
++int sem_destroy(int sem);
++int sem_up(int sem);
++int sem_down(int sem);
++void initialize_all(void);
++int remove_pr(int sema);
++void add_pr(int sem,int val);
++
++
++#endif
+diff -ruNx image.s origsrc/lib/posix/Makedepend-ack src/lib/posix/Makedepend-ack
+--- origsrc/lib/posix/Makedepend-ack	2008-03-19 12:21:40.000000000 +0000
++++ src/lib/posix/Makedepend-ack	2010-04-22 16:56:55.000000000 +0000
+@@ -61,6 +61,7 @@
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _rewinddir.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _rmdir.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _select.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
++	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _sema.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _setgid.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _setsid.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+ 	mkdep 'cc -O -D_MINIX -D_POSIX_SOURCE -E' _setuid.c | sed -e 's:^\(.\):../obj-ack//./posix/\1:' >> .depend-ack
+diff -ruNx image.s origsrc/lib/posix/Makedepend-gnu src/lib/posix/Makedepend-gnu
+--- origsrc/lib/posix/Makedepend-gnu	2008-03-19 12:21:40.000000000 +0000
++++ src/lib/posix/Makedepend-gnu	2010-04-22 16:56:55.000000000 +0000
+@@ -61,6 +61,7 @@
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _rewinddir.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _rmdir.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _select.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
++	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _sema.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _setgid.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _setsid.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+ 	mkdep 'gcc -O -D_MINIX -D_POSIX_SOURCE -E' _setuid.c | sed -e '/<built-in>/d' -e '/<command line>/d' -e 's:^\(.\):../obj-gnu/./posix/\1:' >> .depend-gnu
+diff -ruNx image.s origsrc/lib/posix/Makefile src/lib/posix/Makefile
+--- origsrc/lib/posix/Makefile	2008-03-19 12:21:40.000000000 +0000
++++ src/lib/posix/Makefile	2010-04-22 16:56:55.000000000 +0000
+@@ -79,6 +79,7 @@
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_rewinddir.o)
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_rmdir.o)
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_select.o)
++../obj-ack//libc.a: ../obj-ack//libc.a(_sema.o)
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_setgid.o)
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_setsid.o)
+ ../obj-ack//libc.a: ../obj-ack//libc.a(_setuid.o)
+@@ -241,6 +242,8 @@
+ 	cc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-ack//./posix/_rmdir.o _rmdir.c
+ ../obj-ack//libc.a(_select.o): _select.c
+ 	cc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-ack//./posix/_select.o _select.c
++../obj-ack//libc.a(_sema.o): _sema.c
++	cc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-ack//./posix/_sema.o _sema.c
+ ../obj-ack//libc.a(_setgid.o): _setgid.c
+ 	cc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-ack//./posix/_setgid.o _setgid.c
+ ../obj-ack//libc.a(_setsid.o): _setsid.c
+@@ -378,6 +381,7 @@
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_rewinddir.o
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_rmdir.o
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_select.o
++../obj-gnu/libc.a: ../obj-gnu/./posix/_sema.o
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_setgid.o
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_setsid.o
+ ../obj-gnu/libc.a: ../obj-gnu/./posix/_setuid.o
+@@ -599,6 +603,9 @@
+ ../obj-gnu/./posix/_select.o: _select.c
+ 	gcc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-gnu/./posix/_select.o _select.c
+ 
++../obj-gnu/./posix/_sema.o: _sema.c
++	gcc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-gnu/./posix/_sema.o _sema.c
++
+ ../obj-gnu/./posix/_setgid.o: _setgid.c
+ 	gcc -O -D_MINIX -D_POSIX_SOURCE -c -o ../obj-gnu/./posix/_setgid.o _setgid.c
+ 
+diff -ruNx image.s origsrc/lib/posix/Makefile.in src/lib/posix/Makefile.in
+--- origsrc/lib/posix/Makefile.in	2008-03-19 12:21:39.000000000 +0000
++++ src/lib/posix/Makefile.in	2010-04-22 16:50:02.000000000 +0000
+@@ -65,6 +65,7 @@
+ 	_rewinddir.c \
+ 	_rmdir.c \
+ 	_select.c \
++	_sema.c \
+ 	_setgid.c \
+ 	_setsid.c \
+ 	_setuid.c \
+diff -ruNx image.s origsrc/lib/posix/_sema.c src/lib/posix/_sema.c
+--- origsrc/lib/posix/_sema.c	1970-01-01 00:00:00.000000000 +0000
++++ src/lib/posix/_sema.c	2010-04-25 20:00:30.000000000 +0000
+@@ -0,0 +1,33 @@
++#include <lib.h>
++#include <unistd.h>
++
++message m;
++int sem_init(int val){
++	m.m1_i1=1;
++	m.m1_i2=val;
++	return(_syscall(MM,69,&m));
++}
++
++int sem_destroy(int sem){
++	m.m1_i1=2;
++	m.m1_i2=sem;
++	return(_syscall(MM,69,&m));
++}
++
++
++int sem_up(int sem){
++	m.m1_i1=3;
++	m.m1_i2=sem;
++	return(_syscall(MM,69,&m));
++}
++
++
++int sem_down(int sem){
++	m.m1_i1=4;
++	m.m1_i2=sem;
++	return(_syscall(MM,69,&m));
++}
++	
++
++
++
+diff -ruNx image.s origsrc/servers/pm/Makefile src/servers/pm/Makefile
+--- origsrc/servers/pm/Makefile	2008-03-19 12:21:48.000000000 +0000
++++ src/servers/pm/Makefile	2010-04-22 15:26:41.000000000 +0000
+@@ -14,7 +14,7 @@
+ LDFLAGS = -i
+ 
+ OBJ = 	main.o forkexit.o break.o exec.o time.o timers.o \
+-	signal.o alloc.o utility.o table.o trace.o getset.o misc.o
++	signal.o alloc.o utility.o table.o trace.o getset.o misc.o sema.o
+ 
+ # build local binary
+ all build:	$(SERVER)
+diff -ruNx image.s origsrc/servers/pm/main.c src/servers/pm/main.c
+--- origsrc/servers/pm/main.c	2008-03-19 12:21:48.000000000 +0000
++++ src/servers/pm/main.c	2010-04-25 18:14:21.000000000 +0000
+@@ -22,6 +22,7 @@
+ #include "mproc.h"
+ #include "param.h"
+ 
++
+ #include "../../kernel/const.h"
+ #include "../../kernel/config.h"
+ #include "../../kernel/type.h"
+@@ -178,6 +179,9 @@
+   message mess;
+   struct mem_map mem_map[NR_LOCAL_SEGS];
+   struct memory mem_chunks[NR_MEMS];
++	
++  /*initialize semaphors*/
++	initialize_all();
+ 
+   /* Initialize process table, including timers. */
+   for (rmp=&mproc[0]; rmp<&mproc[NR_PROCS]; rmp++) {
+diff -ruNx image.s origsrc/servers/pm/mproc.h src/servers/pm/mproc.h
+--- origsrc/servers/pm/mproc.h	2008-03-19 12:21:48.000000000 +0000
++++ src/servers/pm/mproc.h	2010-04-24 13:23:01.000000000 +0000
+@@ -11,6 +11,7 @@
+   char mp_exitstatus;		/* storage for status when process exits */
+   char mp_sigstatus;		/* storage for signal # for killed procs */
+   pid_t mp_pid;			/* process id */
++  int mp_epomeni;
+   int mp_endpoint;		/* kernel endpoint id */
+   pid_t mp_procgrp;		/* pid of process group (used for signals) */
+   pid_t mp_wpid;		/* pid this process is waiting for */
+diff -ruNx image.s origsrc/servers/pm/proto.h src/servers/pm/proto.h
+--- origsrc/servers/pm/proto.h	2008-03-19 12:21:48.000000000 +0000
++++ src/servers/pm/proto.h	2010-04-25 18:55:09.000000000 +0000
+@@ -36,6 +36,16 @@
+ /* dmp.c */
+ _PROTOTYPE( int do_fkey_pressed, (void)						);
+ 
++/* sema.c */
++_PROTOTYPE( int do_sema, (void)						);
++_PROTOTYPE( int sema_init, (int val)						);
++_PROTOTYPE( int sema_destroy, (int sem)						);
++_PROTOTYPE( int sema_up, (int sem)						);
++_PROTOTYPE( int sema_down, (int sem)						);
++_PROTOTYPE( void initialize_all, (void)						);
++_PROTOTYPE( int remove_pr, (int sem)						);
++_PROTOTYPE( void add_pr, (int sem, int val)						);
++
+ /* exec.c */
+ _PROTOTYPE( int do_exec, (void)						);
+ _PROTOTYPE( void rw_seg, (int rw, int fd, int proc, int seg,
+diff -ruNx image.s origsrc/servers/pm/sema.c src/servers/pm/sema.c
+--- origsrc/servers/pm/sema.c	1970-01-01 00:00:00.000000000 +0000
++++ src/servers/pm/sema.c	2010-04-25 21:47:34.000000000 +0000
+@@ -0,0 +1,141 @@
++#include "pm.h"
++#include <sys/wait.h>
++#include <minix/callnr.h>
++#include <minix/com.h>
++#include <sys/resource.h>
++#include <signal.h>
++#include "mproc.h"
++#include "param.h"
++#include<stdio.h>
++
++int do_sema(void);
++int sema_init(int val);
++int sema_destroy(int sem);
++int sema_up(int sem);
++int sema_down(int sem);
++void initialize_all(void);
++int remove_pr(int sema);
++void add_pr(int sem,int val);
++
++
++struct semaphor{
++
++	int value;
++	struct mproc *list;
++	int arxiki,teliki;
++	int xristis;
++
++}semaphors[32];
++
++
++
++PUBLIC int  do_sema(){
++
++
++	if (m_in.m1_i1==1) sema_init(m_in.m1_i2);
++	if (m_in.m1_i1==2) sema_destroy(m_in.m1_i2);
++	if (m_in.m1_i1==3) sema_up(m_in.m1_i2);
++	if (m_in.m1_i1==4) sema_down(m_in.m1_i2);
++}
++
++
++	int sema_init(int val){
++	int i,j;
++		if(val<=0){
++			return(EINVAL);
++		}
++		for(j=0;j<=31;j++) {
++			if(semaphors[j].xristis == -1){
++				semaphors[j].value=val;
++				semaphors[j].xristis=mp->mp_effuid;
++				return(j);
++			}
++		}
++		return(ENOMEM);
++	}
++
++	int sema_destroy(int sem){
++	int i,j;
++		if(sem<0 || sem>31) {
++			return(EINVAL);
++		}
++		for(i=0;i<=31;i++) {
++			if(sem==i){
++				if(semaphors[i].xristis ==-1){
++					return(EPERM);
++				}
++				if(mproc[semaphors[i].arxiki].mp_effuid != 0 || mproc[semaphors[i].arxiki].mp_effuid != semaphors[i].xristis) {
++				return(EACCES);
++				}
++				semaphors[i].xristis=-1;
++				semaphors[i].arxiki=-1;
++				semaphors[i].teliki=-1;
++				return(0);
++			
++			}
++		}
++	}
++
++	int sema_up(int sem){
++		int i,j;
++		
++		for(i=0;i<=31;i++){
++			if(sem==i){
++				semaphors[i].value=semaphors[i].value+1;
++				if(semaphors[i].value==0){
++					setreply(remove_pr(sem),OK);
++				}
++				return(OK);
++			}
++		}
++	}
++
++	int sema_down(int sem){
++		int i,j;
++		for(i=0;i<=31;i++){
++			if(sem==i){
++				semaphors[i].value=semaphors[i].value-1;
++				if(semaphors[i].value < 0) {
++					add_pr(sem,who_p);
++					return(SUSPEND);
++				}
++				return(OK);
++			}
++		}
++	}
++
++	void initialize_all(){
++	int i,j;		
++ 		for(i=0;i<=31;i++){
++			semaphors[i].value=1;
++			semaphors[i].list->mp_pid=-100;
++			semaphors[i].arxiki=-1;
++			semaphors[i].teliki=-1;
++			semaphors[i].xristis=-1;
++		}
++	}
++
++
++	void add_pr(int sema,int value){
++		if(semaphors[sema].list->mp_pid<0){
++			semaphors[sema].arxiki=value;
++			semaphors[sema].teliki=value;
++			semaphors[sema].list=&mproc[value];
++		}
++		else{
++			semaphors[sema].teliki=value;
++			semaphors[sema].list->mp_epomeni=value;
++			semaphors[sema].list=&mproc[value];
++		}
++
++
++	}
++
++
++	int remove_pr(int sema) {
++		int timi;
++		timi=semaphors[sema].arxiki;
++		semaphors[sema].arxiki=mproc[semaphors[sema].arxiki].mp_epomeni;
++		return(timi);
++
++		}
+diff -ruNx image.s origsrc/servers/pm/table.c src/servers/pm/table.c
+--- origsrc/servers/pm/table.c	2008-03-19 12:21:48.000000000 +0000
++++ src/servers/pm/table.c	2010-04-22 15:25:03.000000000 +0000
+@@ -84,7 +84,7 @@
+ 	no_sys, 	/* 66 = unused  */
+ 	no_sys,		/* 67 = REVIVE	*/
+ 	no_sys,		/* 68 = TASK_REPLY  */
+-	no_sys,		/* 69 = unused	*/
++	do_sema,		/* 69 = unused	*/
+ 	no_sys,		/* 70 = unused	*/
+ 	do_sigaction,	/* 71 = sigaction   */
+ 	do_sigsuspend,	/* 72 = sigsuspend  */
+diff -ruNx image.s origsrc/tools/revision src/tools/revision
+--- origsrc/tools/revision	2008-03-19 12:21:48.000000000 +0000
++++ src/tools/revision	2010-04-25 21:51:38.000000000 +0000
+@@ -1 +1 @@
+-0
++12

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context antiJARLocking="true" path="/Choose4me">
+<Resource name="jdbc/choose4me" auth="Container" type="javax.sql.DataSource"
+               maxActive="100" maxIdle="30" maxWait="10000"
+               username="trelos" password="*******" driverClassName="com.mysql.jdbc.Driver"
+               url="jdbc:mysql://83.212.118.62:3306/choose4me" testWhileIdle="true" timeBetweenEvictionRunsMillis="300000" 
+               />
+</Context>
+

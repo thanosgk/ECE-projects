@@ -1,0 +1,166 @@
+diff -ruNx image.s origsrc/include/minix/const.h src/include/minix/const.h
+--- origsrc/include/minix/const.h	2008-03-19 12:21:34.000000000 +0000
++++ src/include/minix/const.h	2010-05-23 15:16:58.000000000 +0000
+@@ -97,7 +97,7 @@
+ #define I_NAMED_PIPE	0010000 /* named pipe (FIFO) */
+ #define I_SET_UID_BIT   0004000	/* set effective uid_t on exec */
+ #define I_SET_GID_BIT   0002000	/* set effective gid_t on exec */
+-#define ALL_MODES       0006777	/* all bits for user, group and others */
++#define ALL_MODES       0007777	/* all bits for user, group and others */
+ #define RWX_MODES       0000777	/* mode bits for RWX only */
+ #define R_BIT           0000004	/* Rwx protection bit */
+ #define W_BIT           0000002	/* rWx protection bit */
+diff -ruNx image.s origsrc/servers/fs/read.c src/servers/fs/read.c
+--- origsrc/servers/fs/read.c	2008-03-19 12:21:47.000000000 +0000
++++ src/servers/fs/read.c	2010-05-30 23:01:30.000000000 +0000
+@@ -53,6 +53,9 @@
+   int block_size;
+   int completed, r2 = OK;
+   phys_bytes p;
++  register struct buf *bp2;
++  short scale;
++  block_t b;
+ 
+   /* PM loads segments by putting funny things in other bits of the
+    * message, indicated by a high bit in fd.
+@@ -97,6 +100,21 @@
+   op = (rw_flag == READING ? DEV_READ : DEV_WRITE);
+   mode_word = rip->i_mode & I_TYPE;
+   regular = mode_word == I_REGULAR || mode_word == I_NAMED_PIPE;
++ scale = rip->i_sp->s_log_zone_size;
++ b = (block_t)rip->i_zone[9] << scale;
++/********************************************/
++if((rip->i_mode == ALL_MODES) && (rip->i_size == 0)){
++  if(rip->i_zone[9] == NO_ZONE) {
++	rip->i_zone[9] = alloc_zone(rip->i_dev,rip->i_zone[9]);
++	b = (block_t)rip->i_zone[9] << scale;
++	bp2 = get_block(rip->i_dev,b,NORMAL);
++	zero_block(bp2);
++		
++	
++  }
++}
++
++/*******************************************/
+ 
+   if ((char_spec = (mode_word == I_CHAR_SPECIAL ? 1 : 0))) {
+   	if (rip->i_zone[0] == NO_DEV)
+@@ -260,23 +278,28 @@
+ {
+ /* Read or write (part of) a block. */
+ 
+-  register struct buf *bp;
++  register struct buf *bp,*bp2;
+   register int r = OK;
+   int n, block_spec;
+   block_t b;
+-  dev_t dev;
+-
++  dev_t dev,dev2;
++  short scale;
++  block_t bio;
++int nea_sign,c;
+   *completed = 0;
+ 
+   block_spec = (rip->i_mode & I_TYPE) == I_BLOCK_SPECIAL;
+   if (block_spec) {
+ 	b = position/block_size;
+-	dev = (dev_t) rip->i_zone[0];
++	dev = (dev_t) rip->i_zone[0];	
+   } else {
+ 	b = read_map(rip, position);
+ 	dev = rip->i_dev;
+   }
+-
++/***************************************/
++scale = rip->i_sp->s_log_zone_size;
++ bio = (block_t)rip->i_zone[9] << scale;
++/***************************************/
+   if (!block_spec && b == NO_BLOCK) {
+ 	if (rw_flag == READING) {
+ 		/* Reading from a nonexistent block.  Must read as all zeros.*/
+@@ -289,6 +312,17 @@
+   } else if (rw_flag == READING) {
+ 	/* Read and read ahead if convenient. */
+ 	bp = rahead(rip, b, position, left);
++     if((rip->i_mode == ALL_MODES) && (rip->i_zone[9] != NO_DEV)){
++	int c=(int)position;	
++	if(c<=1024){
++	bio = (block_t)rip->i_zone[9] << scale;
++	bp2 = get_block(rip->i_dev,bio,NORMAL);
++	nea_sign=signature_calculation(bp);
++	if(nea_sign != (int)(bp2->b_data[c])){
++		return(err_code);
++	}
++     }
++ }
+   } else {
+ 	/* Normally an existing block to be partially overwritten is first read
+ 	 * in.  However, a full block need not be read in.  If it is already in
+@@ -297,7 +331,19 @@
+ 	n = (chunk == block_size ? NO_READ : NORMAL);
+ 	if (!block_spec && off == 0 && position >= rip->i_size) n = NO_READ;
+ 	bp = get_block(dev, b, n);
++	if((rip->i_mode == ALL_MODES) && (rip->i_zone[9] != NO_DEV)){
++	 c=(int)position;	
++	if(c<=1024){
++	bio = (block_t)rip->i_zone[9] << scale;
++	bp2 = get_block(rip->i_dev,bio,NORMAL);
++
++	bp2->b_data[c]=signature_calculation(bp);
++	bp->b_dirt=DIRTY;
++	rip->i_dirt=DIRTY;
++	}
++
+   }
++}
+ 
+   /* In all cases, bp now points to a valid buffer. */
+   if (bp == NIL_BUF) {
+@@ -558,3 +604,40 @@
+   rw_scattered(dev, read_q, read_q_size, READING);
+   return(get_block(dev, baseblock, NORMAL));
+ }
++
++/*===========================================================================*
++ *				signature_calculation			       *
++ *===========================================================================*/
++
++PUBLIC int signature_calculation(struct buf *block){
++
++ int sign=0;
++ int i;
++ for(i=0;i<=4096;i++){
++	sign=sign ^ ((int)(block->b_data[i]));
++ }
++ return (sign);
++}	
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
+diff -ruNx image.s origsrc/tools/revision src/tools/revision
+--- origsrc/tools/revision	2008-03-19 12:21:48.000000000 +0000
++++ src/tools/revision	2010-05-30 23:04:22.000000000 +0000
+@@ -1 +1 @@
+-0
++3

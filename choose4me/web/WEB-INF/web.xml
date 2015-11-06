@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <resource-ref>
+        <description>DB Connection</description>
+        <res-ref-name>jdbc/choose4me</res-ref-name>
+        <res-type>javax.sql.DataSource</res-type>
+        <res-auth>Container</res-auth>
+    </resource-ref>
+    <servlet>
+        <servlet-name>selection</servlet-name>
+        <servlet-class>com.example.web.Select</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>poll</servlet-name>
+        <servlet-class>com.example.web.poll</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>vote</servlet-name>
+        <servlet-class>com.example.web.vote</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>item</servlet-name>
+        <servlet-class>com.example.web.item</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>signin</servlet-name>
+        <servlet-class>facebook.SignInServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>callback</servlet-name>
+        <servlet-class>facebook.CallbackServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>logout</servlet-name>
+        <servlet-class>facebook.LogoutServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>post</servlet-name>
+        <servlet-class>facebook.PostServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>signin</servlet-name>
+        <url-pattern>/signin</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>callback</servlet-name>
+        <url-pattern>/callback</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>logout</servlet-name>
+        <url-pattern>/logout</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>post</servlet-name>
+        <url-pattern>/post</url-pattern>
+    </servlet-mapping>
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+    <error-page>
+        <exception-type>facebook4j.FacebookException</exception-type>
+        <location>/error.jsp</location>
+    </error-page>
+    <servlet-mapping>
+        <servlet-name>selection</servlet-name>
+        <url-pattern>/choose4me</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>poll</servlet-name>
+        <url-pattern>/poll</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>vote</servlet-name>
+        <url-pattern>/vote</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>item</servlet-name>
+        <url-pattern>/item</url-pattern>
+    </servlet-mapping>
+    
+</web-app>
